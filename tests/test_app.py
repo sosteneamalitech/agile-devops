@@ -1,7 +1,7 @@
 import jwt
 from fastapi.testclient import TestClient
 
-from app.main import JWT_ALGORITHM, JWT_SECRET, app, store
+from app.main import JWT_ALGORITHM, JWT_SECRET, app, project_store, store
 
 client = TestClient(app)
 
@@ -18,6 +18,7 @@ INVALID_LOGIN = {"email": "ada@example.com"}
 
 def setup_function() -> None:
     store.reset()
+    project_store.reset()
 
 
 def test_successful_registration_returns_201_and_no_password() -> None:
@@ -98,3 +99,51 @@ def test_login_never_exposes_password_in_response() -> None:
 
     assert response.status_code == 200
     assert "secret1" not in response.text
+
+
+def test_successful_project_creation_returns_201_and_details() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    login = client.post("/login", json=VALID_LOGIN)
+    assert login.status_code == 200
+    token = login.json()["token"]
+
+    response = client.post(
+        "/projects",
+        json={"title": "Project Atlas", "description": "AI user story generator"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["id"] == 1
+    assert payload["title"] == "Project Atlas"
+    assert payload["description"] == "AI user story generator"
+    assert project_store.snapshot()[0].owner_id == 1
+
+
+def test_project_validation_error_returns_400() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    login = client.post("/login", json=VALID_LOGIN)
+    assert login.status_code == 200
+    token = login.json()["token"]
+
+    response = client.post(
+        "/projects",
+        json={"title": "", "description": "AI user story generator"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_project_creation_without_login_returns_401() -> None:
+    response = client.post(
+        "/projects",
+        json={"title": "Project Atlas", "description": "AI user story generator"},
+    )
+
+    assert response.status_code == 401
