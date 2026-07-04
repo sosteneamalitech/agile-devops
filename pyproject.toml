@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agile-devops"
-version = "0.0.1"
+version = "0.0.3"
 description = "FastAPI version of the Agile DevOps lab backend"
 readme = "README.md"
 requires-python = ">=3.12"

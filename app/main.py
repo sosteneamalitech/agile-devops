@@ -1,4 +1,4 @@
-"""FastAPI application for user registration and login."""
+"""FastAPI application for user stories generation using AI."""
 
 from __future__ import annotations
 
@@ -45,6 +45,24 @@ class LoginResponse(BaseModel):
     token: str
 
 
+class ProjectResponse(BaseModel):
+    """Response payload returned after creating a project."""
+
+    id: int
+    title: str
+    description: str
+
+
+@dataclass(slots=True)
+class Project:
+    """Stored project record."""
+
+    id: int
+    title: str
+    description: str
+    owner_id: int
+
+
 @dataclass(slots=True)
 class User:
     """Stored user record with a hashed password."""
@@ -85,6 +103,14 @@ class UserStore:
                     return user
             return None
 
+    def get_by_id(self, user_id: int) -> User | None:
+        """Return the stored user matching the id, if any."""
+        with self._lock:
+            for user in self._users:
+                if user.id == user_id:
+                    return user
+            return None
+
     def add(self, name: str, email: str, password: str) -> User:
         """Store a new user and assign the next id."""
         with self._lock:
@@ -105,6 +131,40 @@ class UserStore:
             return list(self._users)
 
 
+class ProjectStore:
+    """Thread-safe in-memory project store."""
+
+    def __init__(self) -> None:
+        """Create an empty store."""
+        self._projects: list[Project] = []
+        self._next_id = 1
+        self._lock = Lock()
+
+    def add(self, title: str, description: str, owner_id: int) -> Project:
+        """Store a new project and assign the next id."""
+        with self._lock:
+            project = Project(
+                id=self._next_id,
+                title=title,
+                description=description,
+                owner_id=owner_id,
+            )
+            self._next_id += 1
+            self._projects.append(project)
+            return project
+
+    def reset(self) -> None:
+        """Clear all stored projects."""
+        with self._lock:
+            self._projects.clear()
+            self._next_id = 1
+
+    def snapshot(self) -> list[Project]:
+        """Return a copy of the stored projects for tests."""
+        with self._lock:
+            return list(self._projects)
+
+
 def hash_password(value: str) -> str:
     """Hash a password for storage."""
     digest = hashlib.sha256(value.encode("utf-8")).digest()
@@ -121,6 +181,33 @@ def create_auth_token(user: User) -> str:
     """Create a signed JWT that carries the user id and email."""
     payload = {"user_id": user.id, "email": user.email, "iat": int(time.time())}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def get_authenticated_user(request: Request) -> User:
+    """Return the authenticated user for a bearer token request."""
+    authorization = request.headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED) from exc
+
+    user_id = payload.get("user_id")
+    email = payload.get("email")
+    if not isinstance(user_id, int) or not isinstance(email, str):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    user = store.get_by_id(user_id)
+    if user is None or user.email != email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    return user
 
 
 def parse_login_request(payload: object) -> LoginRequest:
@@ -148,7 +235,27 @@ def parse_login_request(payload: object) -> LoginRequest:
     return LoginRequest(email=validated_email, password=password)
 
 
+def parse_project_request(payload: object) -> tuple[str, str]:
+    """Validate raw project payload data."""
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    title = payload.get("title")
+    description = payload.get("description")
+
+    if (
+        not isinstance(title, str)
+        or not isinstance(description, str)
+        or not title.strip()
+        or not description.strip()
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    return title.strip(), description.strip()
+
+
 store = UserStore()
+project_store = ProjectStore()
 app = FastAPI(title="Agile DevOps API")
 
 
@@ -189,4 +296,27 @@ async def login(request: Request) -> LoginResponse:
     return LoginResponse(
         user_id=user.id,
         token=create_auth_token(user),
+    )
+
+
+@app.post(
+    "/projects",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_project(request: Request) -> ProjectResponse:
+    """Create a new project for the authenticated user."""
+    user = get_authenticated_user(request)
+
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST) from exc
+
+    title, description = parse_project_request(payload)
+    project = project_store.add(title=title, description=description, owner_id=user.id)
+    return ProjectResponse(
+        id=project.id,
+        title=project.title,
+        description=project.description,
     )

@@ -27,6 +27,7 @@ The application exposes two endpoints:
 - `GET /users` returns the registered users without passwords.
 - `POST /users` registers a user with `name`, `email`, and `password`.
 - `POST /login` authenticates a registered user with `email` and `password` and returns an auth token.
+- `POST /projects` creates a project with `title` and `description` for the authenticated user.
 
 ## Run
 
