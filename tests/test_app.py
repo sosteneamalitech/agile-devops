@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
+import jwt
 
-from app.main import app, store
+from app.main import JWT_ALGORITHM, JWT_SECRET, app, store
 
 
 client = TestClient(app)
@@ -12,6 +13,8 @@ VALID_USER = {
 }
 
 INVALID_USER = {"name": "Ada"}
+VALID_LOGIN = {"email": "ada@example.com", "password": "secret1"}
+INVALID_LOGIN = {"email": "ada@example.com"}
 
 
 def setup_function() -> None:
@@ -53,3 +56,46 @@ def test_stored_and_returned_users_never_expose_password() -> None:
     assert users.status_code == 200
     assert "password" not in users.text
     assert "secret1" not in users.text
+
+
+def test_successful_login_returns_token() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    response = client.post("/login", json=VALID_LOGIN)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["user_id"] == 1
+    assert isinstance(payload["token"], str)
+    assert payload["token"]
+    assert jwt.decode(payload["token"], JWT_SECRET, algorithms=[JWT_ALGORITHM])["user_id"] == 1
+    assert "password" not in response.text
+
+
+def test_invalid_login_credentials_return_401() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    response = client.post("/login", json={"email": "ada@example.com", "password": "wrongpass"})
+
+    assert response.status_code == 401
+
+
+def test_login_validation_error_returns_400() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    response = client.post("/login", json=INVALID_LOGIN)
+
+    assert response.status_code == 400
+
+
+def test_login_never_exposes_password_in_response() -> None:
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == 201
+
+    response = client.post("/login", json=VALID_LOGIN)
+
+    assert response.status_code == 200
+    assert "secret1" not in response.text

@@ -26,8 +26,7 @@ The application exposes two endpoints:
 
 - `GET /users` returns the registered users without passwords.
 - `POST /users` registers a user with `name`, `email`, and `password`.
-
-Passwords are hashed before storage, duplicate emails return `409 Conflict`, and invalid input is rejected by FastAPI validation.
+- `POST /login` authenticates a registered user with `email` and `password` and returns an auth token.
 
 ## Run
 
@@ -37,6 +36,14 @@ Install the project dependencies and start the app with:
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+## Environment Variables
+
+The application needs the following environment variables:
+
+- `JWT_SECRET`
+- `JWT_ALGORITHM` 
+
 
 ## Test
 
