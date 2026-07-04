@@ -1,3 +1,5 @@
+"""FastAPI application for user registration and login."""
+
 from __future__ import annotations
 
 import base64
@@ -6,38 +8,47 @@ import os
 import time
 from dataclasses import dataclass
 from threading import Lock
-from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, status
 import jwt
 from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field, TypeAdapter, ValidationError
 
 
 class RegisterRequest(BaseModel):
+    """Request body for creating a new account."""
+
     name: str = Field(min_length=1)
     email: EmailStr
     password: str = Field(min_length=6)
 
 
 class UserResponse(BaseModel):
+    """Response payload returned for registered users."""
+
     id: int
     name: str
     email: EmailStr
 
 
 class LoginRequest(BaseModel):
+    """Request body for logging a user in."""
+
     email: EmailStr
     password: str
 
 
 class LoginResponse(BaseModel):
+    """Response payload returned after successful login."""
+
     user_id: int
     token: str
 
 
 @dataclass(slots=True)
 class User:
+    """Stored user record with a hashed password."""
+
     id: int
     name: str
     email: str
@@ -45,20 +56,29 @@ class User:
 
 
 class UserStore:
+    """Thread-safe in-memory user store."""
+
     def __init__(self) -> None:
+        """Create an empty store."""
         self._users: list[User] = []
         self._next_id = 1
         self._lock = Lock()
 
     def all(self) -> list[UserResponse]:
+        """Return every stored user without passwords."""
         with self._lock:
-            return [UserResponse(id=user.id, name=user.name, email=user.email) for user in self._users]
+            return [
+                UserResponse(id=user.id, name=user.name, email=user.email)
+                for user in self._users
+            ]
 
     def exists(self, email: str) -> bool:
+        """Check whether a user already exists for the email address."""
         with self._lock:
             return any(user.email == email for user in self._users)
 
     def get_by_email(self, email: str) -> User | None:
+        """Return the stored user matching the email address, if any."""
         with self._lock:
             for user in self._users:
                 if user.email == email:
@@ -66,6 +86,7 @@ class UserStore:
             return None
 
     def add(self, name: str, email: str, password: str) -> User:
+        """Store a new user and assign the next id."""
         with self._lock:
             user = User(id=self._next_id, name=name, email=email, password=password)
             self._next_id += 1
@@ -73,16 +94,19 @@ class UserStore:
             return user
 
     def reset(self) -> None:
+        """Clear all stored users."""
         with self._lock:
             self._users.clear()
             self._next_id = 1
 
     def snapshot(self) -> list[User]:
+        """Return a copy of the stored users for tests."""
         with self._lock:
             return list(self._users)
 
 
 def hash_password(value: str) -> str:
+    """Hash a password for storage."""
     digest = hashlib.sha256(value.encode("utf-8")).digest()
     return base64.b64encode(digest).decode("ascii")
 
@@ -94,22 +118,30 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
 def create_auth_token(user: User) -> str:
+    """Create a signed JWT that carries the user id and email."""
     payload = {"user_id": user.id, "email": user.email, "iat": int(time.time())}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def parse_login_request(payload: Any) -> LoginRequest:
+def parse_login_request(payload: object) -> LoginRequest:
+    """Validate raw login payload data and coerce the email field."""
     if not isinstance(payload, dict):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     email = payload.get("email")
     password = payload.get("password")
 
-    if not isinstance(email, str) or not isinstance(password, str) or not email.strip() or not password:
+    if (
+        not isinstance(email, str)
+        or not isinstance(password, str)
+        or not email.strip()
+        or not password
+    ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        validated_email = TypeAdapter(EmailStr).validate_python(email)
+        email_adapter = TypeAdapter(EmailStr)
+        validated_email = email_adapter.validate_python(email)
     except ValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST) from exc
 
@@ -122,20 +154,27 @@ app = FastAPI(title="Agile DevOps API")
 
 @app.get("/users", response_model=list[UserResponse])
 def list_users() -> list[UserResponse]:
+    """Return all registered users."""
     return store.all()
 
 
 @app.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(request: RegisterRequest) -> UserResponse:
+    """Create a new user account."""
     if store.exists(request.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
-    user = store.add(request.name, request.email, hash_password(request.password))
+    user = store.add(
+        request.name,
+        request.email,
+        hash_password(request.password),
+    )
     return UserResponse(id=user.id, name=user.name, email=user.email)
 
 
 @app.post("/login", response_model=LoginResponse)
 async def login(request: Request) -> LoginResponse:
+    """Authenticate a user and return a token."""
     try:
         payload = await request.json()
     except ValueError as exc:
@@ -147,4 +186,7 @@ async def login(request: Request) -> LoginResponse:
     if user is None or user.password != hash_password(login_request.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    return LoginResponse(user_id=user.id, token=create_auth_token(user))
+    return LoginResponse(
+        user_id=user.id,
+        token=create_auth_token(user),
+    )
