@@ -1,3 +1,8 @@
-fastapi>=0.111,<1.0
-uvicorn[standard]>=0.30,<1.0
-email-validator>=2.2,<3.0
+fastapi~=0.139.0
+uvicorn[standard]~=0.50.0
+pydantic~=2.13.0
+email-validator~=2.3.0
+python-dotenv~=1.2.0
+PyYAML~=6.0.0
+pytest~=8.4.0
+httpx~=0.28.0

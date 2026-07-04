@@ -48,7 +48,7 @@ uvicorn app.main:app --reload
 Run the test suite with:
 
 ```bash
-pytest
+python3 -m pytest
 ```
 
 
