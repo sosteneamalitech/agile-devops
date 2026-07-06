@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from pydantic import BaseModel, EmailStr, Field, TypeAdapter, ValidationError
 
 _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("agile_devops_api")
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -61,7 +64,10 @@ scrum_writer = Agent(
     llm=os_llm,
     verbose=True,
 )
+class HealthResponse(BaseModel):
+    """Response payload for system health check status."""
 
+    status: str
 
 class RegisterRequest(BaseModel):
     """Request body for creating a new account."""
@@ -359,8 +365,10 @@ def parse_project_request(payload: object) -> tuple[str, str]:
 store = UserStore()
 project_store = ProjectStore()
 app = FastAPI(title="Agile DevOps API")
-
-
+@app.get("/health", response_model=HealthResponse, status_code=status.HTTP_200_OK)
+def health_check() -> HealthResponse:
+    """Return the current operational status of the API application."""
+    return HealthResponse(status="healthy")
 @app.get("/users", response_model=list[UserResponse])
 def list_users() -> list[UserResponse]:
     """Return all registered users."""
