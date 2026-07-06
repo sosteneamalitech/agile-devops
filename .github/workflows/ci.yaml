@@ -5,8 +5,7 @@ on:
   pull_request:
     branches:
       - develop
-      - staging
-      - release
+      - main
 jobs:
   run-tests:
     runs-on: ubuntu-latest
