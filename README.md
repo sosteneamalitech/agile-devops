@@ -52,7 +52,7 @@ All user stories can be found actively tracked within the GitHub Project board. 
 - **Scenario 1:** Valid email and password are sent, user logs in, and gets a token back.
 - **Scenario 2:** Wrong email or password is sent, login fails, and server returns code 401.
 
-![User Story #2 Details](screenshots/second-task.png)
+![User Story #2 Details](screenshots/lgoin_with_email%20and%20password.png)
 
 ##### Issue #3: Create a product
 - **Scenario 1:** Logged-in user sends a clear project title and description, project is made, and server returns code 201.
@@ -64,7 +64,7 @@ All user stories can be found actively tracked within the GitHub Project board. 
 
 ## Sprint 1 Review 
 I finished Sprint 1 on time. All three committed tasks moved completely to the "Done" column on my project board. I verified the endpoints using automated tests and quick manual curl requests.
-- **Value delivered:** Secure user accounts, user login tracking, and basic project data paths.
+- **Value delivered:** presonalized user accounts, user login , and creating a basic project.
 
 ![Sprint 1 Done Status Board](screenshots/completion%20of%20the%20first%20sprint.png)
 
