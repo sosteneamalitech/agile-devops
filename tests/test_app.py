@@ -34,7 +34,11 @@ def setup_function() -> None:
     store.reset()
     project_store.reset()
 
-
+def test_health_check_returns_200() -> None:
+    """Verify that a GET request to /health returns HTTP 200 and 'healthy' status."""
+    response = client.get("/health")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"status": "healthy"}
 def test_successful_registration_returns_201_and_no_password() -> None:
     """Ensure valid user registration yields 201 and conceals passwords."""
     response = client.post("/users", json=VALID_USER)
