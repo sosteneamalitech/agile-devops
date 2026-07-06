@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+email-validator
+PyJWT
+python-dotenv
+PyYAML
+pytest
+httpx
+ruff
+crewai
+crewai-tools
+litellm
