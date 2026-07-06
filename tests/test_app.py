@@ -184,3 +184,75 @@ def test_project_creation_without_login_returns_401() -> None:
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+def test_delete_project_success() -> None:
+    """Verify owner can successfully delete their project (HTTP 204)."""
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == status.HTTP_201_CREATED
+
+    login = client.post("/login", json=VALID_LOGIN)
+    assert login.status_code == status.HTTP_200_OK
+    token = login.json()["token"]
+    auth_header = {"Authorization": f"Bearer {token}"}
+
+    proj_res = client.post(
+        "/projects",
+        json={"title": "Delete Me", "description": "Temp"},
+        headers=auth_header,
+    )
+    project_id = proj_res.json()["id"]
+
+    delete_res = client.delete(f"/projects/{project_id}", headers=auth_header)
+    assert delete_res.status_code == status.HTTP_204_NO_CONTENT
+    assert len(project_store.snapshot()) == 0
+
+
+def test_delete_project_unauthorized_forbidden() -> None:
+    """Verify a user cannot delete another user's project (HTTP 403)."""
+    register1 = client.post("/users", json=VALID_USER)
+    assert register1.status_code == status.HTTP_201_CREATED
+
+    login1 = client.post("/login", json=VALID_LOGIN)
+    assert login1.status_code == status.HTTP_200_OK
+    token1 = login1.json()["token"]
+    auth_header1 = {"Authorization": f"Bearer {token1}"}
+
+    proj_res = client.post(
+        "/projects",
+        json={"title": "Secure Project", "description": "Keep"},
+        headers=auth_header1,
+    )
+    project_id = proj_res.json()["id"]
+
+    client.post(
+        "/users",
+        json={
+            "name": "Attacker",
+            "email": "attacker@example.com",
+            "password": "password123",
+        },
+    )
+    login2 = client.post(
+        "/login",
+        json={"email": "attacker@example.com", "password": "password123"},
+    )
+    token2 = login2.json()["token"]
+    auth_header2 = {"Authorization": f"Bearer {token2}"}
+
+    delete_res = client.delete(
+        f"/projects/{project_id}", headers=auth_header2,
+    )
+    assert delete_res.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_delete_project_not_found() -> None:
+    """Verify attempting to delete a non-existent project yields HTTP 404."""
+    register = client.post("/users", json=VALID_USER)
+    assert register.status_code == status.HTTP_201_CREATED
+
+    login = client.post("/login", json=VALID_LOGIN)
+    assert login.status_code == status.HTTP_200_OK
+    token = login.json()["token"]
+    auth_header = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete("/projects/9999", headers=auth_header)
+    assert response.status_code == status.HTTP_404_NOT_FOUND

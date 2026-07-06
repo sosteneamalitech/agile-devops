@@ -255,7 +255,21 @@ class ProjectStore:
         """Return a copy of the stored projects for tests."""
         with self._lock:
             return list(self._projects)
+    def exists(self, project_id: int) -> bool:
+        """Check whether a project exists by its id."""
+        with self._lock:
+            return any(project.id == project_id for project in self._projects)
+    def delete(self, project_id: int) -> bool:
+        """Permanently delete a project by its id.
 
+        Return True if found and deleted, False otherwise.
+        """
+        with self._lock:
+            for index, project in enumerate(self._projects):
+                if project.id == project_id:
+                    self._projects.pop(index)
+                    return True
+            return False
 
 def hash_password(value: str) -> str:
     """Hash a password for storage."""
@@ -494,3 +508,24 @@ def generate_project_stories(
     else:
         validated_payload: GenerateUserStoriesResponse = crew_result.pydantic
         return validated_payload
+@app.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(project_id: int, request: Request) -> None:
+    """Permanently delete a project belonging to the authenticated owner."""
+    user = get_authenticated_user(request)
+
+    if not project_store.exists(project_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found.",
+        )
+
+    project = project_store.get_for_owner(
+        project_id=project_id, owner_id=user.id,
+    )
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this project.",
+        )
+
+    project_store.delete(project_id)
