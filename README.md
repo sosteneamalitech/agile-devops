@@ -26,11 +26,11 @@ All user stories can be found actively tracked within the GitHub Project board. 
 
 | Issue / PR Links | User Story | Priority | Sprint Allocation | Estimate |
 | :--- | :--- | :--- | :--- | :--- |
-| [Issue #1](https://github.com/sosteneamalitech/agile-devops/issues/1) / [PR #6](https://github.com/sosteneamalitech/agile-devops/pull/6) | As a new user, I want to create an account so that I can log in safely. | Must Have | Sprint 1 Planning | 5 SP |
-| [Issue #2](https://github.com/sosteneamalitech/agile-devops/issues/2) / [PR #7](https://github.com/sosteneamalitech/agile-devops/pull/10) | As a user, I want to log in with my email and password to access my data. | Must Have | Sprint 1 Planning | 3 SP |
-| [Issue #3](https://github.com/sosteneamalitech/agile-devops/issues/3) / [PR #8](https://github.com/sosteneamalitech/agile-devops/pull/11) | As a logged-in user, I want to create a project with a title and description. | Must Have | Sprint 1 Planning | 3 SP |
-| [Issue #4](https://github.com/sosteneamalitech/agile-devops/issues/4) / [PR #9](https://github.com/sosteneamalitech/agile-devops/pull/15) | As a logged-in user, I want to generate user stories for my project using AI. | Must Have | Sprint 2 Planning | 13 SP |
-| [Issue #5](https://github.com/sosteneamalitech/agile-devops/issues/5) / [PR #10](https://github.com/sosteneamalitech/agile-devops/pull/16) | As a logged-in user, I want to delete a project to clean up my dashboard. | Could Have | Sprint 2 Planning | 2 SP |
+| [Issue #1](https://github.com/sosteneamalitech/agile-devops/issues/1) / [PR #6](https://github.com/sosteneamalitech/agile-devops/pull/6) | As a new user, I want to create an account so that I can log in safely. | Must Have(P0) | Sprint 1 Planning | 5 SP |
+| [Issue #2](https://github.com/sosteneamalitech/agile-devops/issues/2) / [PR #7](https://github.com/sosteneamalitech/agile-devops/pull/10) | As a user, I want to log in with my email and password to access my data. | Must Have(P0) | Sprint 1 Planning | 3 SP |
+| [Issue #3](https://github.com/sosteneamalitech/agile-devops/issues/3) / [PR #8](https://github.com/sosteneamalitech/agile-devops/pull/11) | As a logged-in user, I want to create a project with a title and description. | Must Have(P0) | Sprint 1 Planning | 3 SP |
+| [Issue #4](https://github.com/sosteneamalitech/agile-devops/issues/4) / [PR #9](https://github.com/sosteneamalitech/agile-devops/pull/15) | As a logged-in user, I want to generate user stories for my project using AI. | Must Have(P0) | Sprint 2 Planning | 13 SP |
+| [Issue #5](https://github.com/sosteneamalitech/agile-devops/issues/5) / [PR #10](https://github.com/sosteneamalitech/agile-devops/pull/16) | As a logged-in user, I want to delete a project to clean up my dashboard. | Could Have(P2) | Sprint 2 Planning | 2 SP |
 
 ---
 
@@ -52,7 +52,7 @@ All user stories can be found actively tracked within the GitHub Project board. 
 - **Scenario 1:** Valid email and password are sent, user logs in, and gets a token back.
 - **Scenario 2:** Wrong email or password is sent, login fails, and server returns code 401.
 
-![User Story #2 Details](screenshots/login_with_email%20and%20password.png)
+![User Story #2 Details](screenshots/lgoin_with_email%20and%20password.png)
 
 ##### Issue #3: Create a product
 - **Scenario 1:** Logged-in user sends a clear project title and description, project is made, and server returns code 201.
@@ -60,6 +60,36 @@ All user stories can be found actively tracked within the GitHub Project board. 
 ![User Story #3 Details](screenshots/third-feature.png)
 
 ---
+## Sprint Reviews and Retrospectives
+
+## Sprint 1 Review 
+I finished Sprint 1 on time. All three committed tasks moved completely to the "Done" column on my project board. I verified the endpoints using automated tests and quick manual curl requests.
+- **Value delivered:** presonalized user accounts, user login , and creating a basic project.
+
+![Sprint 1 Done Status Board](screenshots/completion%20of%20the%20first%20sprint.png)
+
+### Why I Changed My Process After Sprint 1
+During my Sprint 1 review, I noticed that creating version tags by hand took too much time and caused messy release naming. Since I was working completely alone, I needed my tools to protect my delivery quality. I made two direct changes for Sprint 2 based on what I learned:
+1. **Version Check Action:** I updated my GitHub Actions file to run an automated version check during code delivery. This made sure every single release tag strictly matched my internal version config.
+2. **Monitoring Route:** I added a health check feature via the `GET /health` path to let me view system status without looking directly at backend server code.
+
+---
+
+## Sprint 2 Review
+I finished Sprint 2 successfully by completing both chosen tasks on my board. My automated tests passed, and the AI engine successfully built stories over the API.
+- **Value delivered:** Core AI user story generation tools and lightweight monitoring paths.
+
+![Sprint 2 Final Progress State](screenshots/last%20task.png)
+
+### Velocity Analytics
+My burnup chart shows my progress over the 2-day sprint timeframe. The middle flat spot happened because I spent extra time testing my custom AI prompt rules. As soon as the connection worked, my work line caught back up to the target scope line quickly.
+
+![Velocity Burnup Chart](screenshots/burnup-chart.png)
+
+### What I Will Improve Next (Sprint 2 Retrospective)
+Looking closely at my Sprint 2 review, I found two new improvements I can make to grow my skills in future cycles:
+- **Strict Version Rules:** I want to update my pipeline code to check that the previous version number is always strictly less than the new version tag. This will stop accidental version mix-ups.
+- **Proper User Interface:** While my curl setup works great for developer testing, the next big process step is building a real web UI page to make the application easy for non-technical users to try.
 
 ## DevOps Practice
 
