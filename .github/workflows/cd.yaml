@@ -5,8 +5,7 @@ on:
   push:
     branches:
       - develop
-      - staging
-      - release
+      - main
 
 permissions:
   contents: write
@@ -37,11 +36,7 @@ jobs:
               release_tag="${VERSION}-dev"
               latest_flag=
               ;;
-            staging)
-              release_tag="${VERSION}-demo"
-              latest_flag=
-              ;;
-            release)
+            main)
               release_tag="${VERSION}"
               latest_flag=--latest
               ;;
