@@ -255,6 +255,10 @@ class ProjectStore:
         """Return a copy of the stored projects for tests."""
         with self._lock:
             return list(self._projects)
+    def exists(self, project_id: int) -> bool:
+        """Check whether a project exists by its id."""
+        with self._lock:
+            return any(project.id == project_id for project in self._projects)
     def delete(self, project_id: int) -> bool:
         """Permanently delete a project by its id.
 
@@ -509,17 +513,14 @@ def delete_project(project_id: int, request: Request) -> None:
     """Permanently delete a project belonging to the authenticated owner."""
     user = get_authenticated_user(request)
 
-    with project_store._lock:
-        project_exists = any(p.id == project_id for p in project_store._projects)
-
-    if not project_exists:
+    if not project_store.exists(project_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found.",
-        )   
+        )
 
     project = project_store.get_for_owner(
-        project_id=project_id, owner_id=user.id
+        project_id=project_id, owner_id=user.id,
     )
     if not project:
         raise HTTPException(

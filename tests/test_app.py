@@ -239,7 +239,7 @@ def test_delete_project_unauthorized_forbidden() -> None:
     auth_header2 = {"Authorization": f"Bearer {token2}"}
 
     delete_res = client.delete(
-        f"/projects/{project_id}", headers=auth_header2
+        f"/projects/{project_id}", headers=auth_header2,
     )
     assert delete_res.status_code == status.HTTP_403_FORBIDDEN
 
